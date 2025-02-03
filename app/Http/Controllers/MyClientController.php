@@ -66,9 +66,30 @@ class MyClientController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, MyClient $client)
     {
-        //
+        $data = $request->validate([
+            'name' => 'string|max:250',
+            'slug' => 'string|max:100|unique:my_client,slug,' . $client->id,
+            'is_project' => 'in:0,1',
+            'self_capture' => 'string|max:1',
+            'client_prefix' => 'string|max:4',
+            'client_logo' => 'nullable|image|mimes:jpg,jpeg,png',
+            'address' => 'nullable|string',
+            'phone_number' => 'nullable|string|max:50',
+            'city' => 'nullable|string|max:50',
+        ]);
+
+        if ($request->hasFile('client_logo')) {
+            $path = $request->file('client_logo')->store('clients', 's3');
+            $data['client_logo'] = Storage::disk('s3')->url($path);
+        }
+
+        $client->update($data);
+        Redis::del("client:{$client->slug}");
+        Redis::set("client:{$client->slug}", json_encode($client));
+
+        return response()->json($client);
     }
 
     /**
