@@ -49,7 +49,19 @@ class MyClientController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id) {}
+    public function show($slug)
+    {
+        $client = Redis::get("client:$slug");
+
+        if (!$client) {
+            $client = MyClient::where('slug', $slug)->firstOrFail();
+            Redis::set("client:$slug", json_encode($client));
+        } else {
+            $client = json_decode($client);
+        }
+
+        return response()->json($client);
+    }
 
     /**
      * Update the specified resource in storage.
